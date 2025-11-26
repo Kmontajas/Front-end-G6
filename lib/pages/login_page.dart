@@ -3,26 +3,66 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/my_button.dart';
 import 'package:flutter_application_1/components/my_textfield.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   LoginPage({super.key});
 
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   //text editing controllers
   final emailController = TextEditingController();
+
   final passwordController = TextEditingController();
 
   //sign user in method
   void signUserIn() async {
+    //loading circle
+    showDialog(
+      context: context,
+      builder: (context) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      },
+    );
+    try {
     await FirebaseAuth.instance.signInWithEmailAndPassword(
       email: emailController.text,
       password: passwordController.text,
     );
+    Navigator.pop(context);
+  } on FirebaseAuthException catch (e) {
+      
+    Navigator.pop(context);
+
+    //show error message
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(e.message ?? 'An unknown error occurred'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
-    
+}
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[300],
+      backgroundColor: const Color.fromARGB(255, 7, 97, 11),
       body: SafeArea(
         child: Center(
           child: Column(
@@ -32,28 +72,19 @@ class LoginPage extends StatelessWidget {
 
               //logo
               Icon(
-                Icons.lock,
+                Icons.account_circle_rounded,
+                color: Colors.white,
                 size: 100,
               ),
 
               const SizedBox(height: 50),
-
-              //welcome back text
-              Text(
-                'Welcome back, you\'ve been missed!',
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 16,
-                ),
-              ),
-
-              const SizedBox(height: 25),
               
               //email textfield
               MyTextField(
                 controller: emailController,
                 hintText: 'email',
                 obscureText: false,
+                icon: Icons.email,
               ),
 
               const SizedBox(height: 10),
@@ -63,6 +94,7 @@ class LoginPage extends StatelessWidget {
                 controller: passwordController,
                 hintText: 'Password',
                 obscureText: true,
+                icon: Icons.lock,
               ),
 
               const SizedBox(height: 10),
@@ -75,7 +107,7 @@ class LoginPage extends StatelessWidget {
                   children: [
                     Text(
                       'Forgot Password?',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: Colors.grey[300]),
                     ),
                   ],
                 ),
@@ -95,7 +127,7 @@ class LoginPage extends StatelessWidget {
                 children: [
                 Text(
                   'Not a member?',
-                  style: TextStyle(color: Colors.grey[700]),
+                  style: TextStyle(color: Colors.grey[300]),
                 ),
                 const SizedBox(width: 4),
                 const Text(
