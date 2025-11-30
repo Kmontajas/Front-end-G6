@@ -110,80 +110,92 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-        
-                  //logo
-                  Image.asset(
-                    'assets/images/ucclogowhitenonum.png',
-                    width: MediaQuery.of(context).size.width * 0.6,
-                    height: MediaQuery.of(context).size.height * 0.35,
-                    fit: BoxFit.contain,
-                  ),
-        
-                  const SizedBox(height: 25),
-        
-                  //email textfield
-                  MyTextField(
-                    controller: emailController,
-                    hintText: 'email',
-                    obscureText: false,
-                    icon: Icons.email,
-                  ),
-        
-                  const SizedBox(height: 10),
-        
-                  //password textfield
-                  MyTextField(
-                    controller: passwordController,
-                    hintText: 'Password',
-                    obscureText: true,
-                    icon: Icons.lock,
-                  ),
-        
-                  const SizedBox(height: 10),
-        
-                  //confirm password textfield
-                  MyTextField(
-                    controller: confirmPasswordController,
-                    hintText: 'Confirm Password',
-                    obscureText: true,
-                    icon: Icons.lock,
-                  ),
-        
-                  const SizedBox(height: 25),
-                  //sign in button
-                  MyButton(text: "Sign up", onTap: signUserUp),
-        
-                  const SizedBox(height: 25),
-        
-                  //not a member? register now
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Already have an account?',
-                        style: TextStyle(color: Colors.grey[300]),
-                      ),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: widget.onTap,
-                        child: const Text(
-                          'Login now',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              double Width = constraints.maxWidth;
+              double formWidth = 
+              Width > 1000 ? 400 :
+              Width > 600 ? 500 : 
+              Width * 0.9;
+              return Center(
+                child: SingleChildScrollView(
+                  child: Container(
+                    width: formWidth,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        
+                        //logo
+                        Image.asset(
+                          'assets/images/ucclogowhitenonum.png',
+                          width: MediaQuery.of(context).size.width * 0.6,
+                          height: MediaQuery.of(context).size.height * 0.35,
+                          fit: BoxFit.contain,
                         ),
-                      ),
-                    ],
+                        
+                        const SizedBox(height: 25),
+                        
+                        //email textfield
+                        MyTextField(
+                          controller: emailController,
+                          hintText: 'email',
+                          obscureText: false,
+                          icon: Icons.email,
+                        ),
+                        
+                        const SizedBox(height: 10),
+                        
+                        //password textfield
+                        MyTextField(
+                          controller: passwordController,
+                          hintText: 'Password',
+                          obscureText: true,
+                          icon: Icons.lock,
+                        ),
+                        
+                        const SizedBox(height: 10),
+                        
+                        //confirm password textfield
+                        MyTextField(
+                          controller: confirmPasswordController,
+                          hintText: 'Confirm Password',
+                          obscureText: true,
+                          icon: Icons.lock,
+                        ),
+                        
+                        const SizedBox(height: 25),
+                        //sign in button
+                        MyButton(text: "Sign up", onTap: signUserUp),
+                        
+                        const SizedBox(height: 25),
+                        
+                        //not a member? register now
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Already have an account?',
+                              style: TextStyle(color: Colors.grey[300]),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: widget.onTap,
+                              child: const Text(
+                                'Login now',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            }
           ),
         ),
       ),

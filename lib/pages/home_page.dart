@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
+import 'package:flutter_application_1/components/bins/bins_row.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
   
@@ -44,7 +44,7 @@ class HomePage extends StatelessWidget {
       ),
       backgroundColor: Colors.grey[100],
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Container(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -84,23 +84,25 @@ class HomePage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Row(
-                children: [
-                  Expanded(
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 32, color: Colors.green),
-                            const SizedBox(width: 10),
-                            const Text('Total Bins'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: const [
+                  Expanded(flex: 2,child: Text("Bin",style: headerStyle, textAlign: TextAlign.center)),
+                  Expanded(flex: 3,child: Text("Location", style: headerStyle, textAlign: TextAlign.center)),
+                  Expanded(flex: 4,child: Text("Type", style: headerStyle, textAlign: TextAlign.center)),
+                  Expanded(flex: 6,child: Text("Fill Level", style: headerStyle, textAlign: TextAlign.center)),
+                  Expanded(flex: 3,child: Text("Status", style: headerStyle, textAlign: TextAlign.center)),
                 ],
               ),
+              const Divider(),
+
+              Expanded(
+                child: ListView(
+                  children: const[
+                    BinRow(binId: "01", location: "Canteen", type: "Non-Biodegradable", fillLevel: 50, status: "Low",),
+                  ],
+                ),
+              )
             ],
           ),
         ),
@@ -108,3 +110,5 @@ class HomePage extends StatelessWidget {
     );
   }
 }
+
+const headerStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87);
