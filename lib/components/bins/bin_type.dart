@@ -1,13 +1,12 @@
-
 import 'package:flutter/material.dart';
 
-class BinTypeTag extends StatelessWidget{
+class BinTypeTag extends StatelessWidget {
   final String type;
 
   const BinTypeTag({required this.type, super.key});
 
-  Color getTypeCOlor(){
-    switch (type){
+  Color getTypeCOlor() {
+    switch (type) {
       case "Biodegradable":
         return Colors.green.shade100;
       case "Recyclable":
@@ -27,9 +26,7 @@ class BinTypeTag extends StatelessWidget{
         color: getTypeCOlor(),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(type, style: const TextStyle(fontSize: 12),),
+      child: Text(type, style: const TextStyle(fontSize: 12)),
     );
   }
 }
-
-

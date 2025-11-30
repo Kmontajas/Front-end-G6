@@ -38,17 +38,19 @@ class BinRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      // onTap: () {}, // navigation 
+      // onTap: () {}, // navigation
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          
+
           children: [
             Expanded(flex: 2, child: Center(child: Text(binId))),
             Expanded(flex: 3, child: Center(child: Text(location))),
-            Expanded(flex: 4, child: Center(child: BinTypeTag(type: type)),
+            Expanded(
+              flex: 4,
+              child: Center(child: BinTypeTag(type: type)),
             ),
 
             Expanded(
@@ -60,7 +62,7 @@ class BinRow extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
-                        value: fillLevel/100,
+                        value: fillLevel / 100,
                         backgroundColor: Colors.grey.shade300,
                         valueColor: AlwaysStoppedAnimation(Colors.black87),
                         minHeight: 8,
@@ -75,12 +77,9 @@ class BinRow extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Center(
-                child: StatusTag(
-                  label: status,
-                  color: getStatusColor(),
-                ),
+                child: StatusTag(label: status, color: getStatusColor()),
               ),
-            )
+            ),
           ],
         ),
       ),

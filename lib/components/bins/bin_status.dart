@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-class StatusTag extends StatelessWidget{
+class StatusTag extends StatelessWidget {
   final String label;
   final Color color;
-  
+
   const StatusTag({required this.label, required this.color, super.key});
 
   @override
