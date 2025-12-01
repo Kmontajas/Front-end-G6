@@ -12,6 +12,8 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 700;
 
     return Scaffold(
       appBar: AppBar(
@@ -89,49 +91,53 @@ class HomePage extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: const [
-                  Expanded(
-                    flex: 2,
-                    child: Text(
-                      "Bin",
-                      style: headerStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      "Location",
-                      style: headerStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: Text(
-                      "Type",
-                      style: headerStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 6,
-                    child: Text(
-                      "Fill Level",
-                      style: headerStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      "Status",
-                      style: headerStyle,
-                      textAlign: TextAlign.center,
-                    ),
+              Column(
+                children: [
+                  if (!isMobile)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: const [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          "Bin",
+                          style: headerStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          "Location",
+                          style: headerStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 4,
+                        child: Text(
+                          "Type",
+                          style: headerStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 6,
+                        child: Text(
+                          "Fill Level",
+                          style: headerStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          "Status",
+                          style: headerStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -143,9 +149,44 @@ class HomePage extends StatelessWidget {
                     BinRow(
                       binId: "01",
                       location: "Canteen",
-                      type: "Non-Biodegradable",
+                      type: "Biodegradable",
                       fillLevel: 50,
                       status: "Low",
+                    ),
+                    BinRow(
+                      binId: "02",
+                      location: "hallway",
+                      type: "Non-Biodegradable",
+                      fillLevel: 60,
+                      status: "Medium",
+                    ),
+                    BinRow(
+                      binId: "02",
+                      location: "hallway",
+                      type: "Non-Biodegradable",
+                      fillLevel: 60,
+                      status: "Medium",
+                    ),
+                    BinRow(
+                      binId: "02",
+                      location: "hallway",
+                      type: "Non-Biodegradable",
+                      fillLevel: 60,
+                      status: "Medium",
+                    ),
+                    BinRow(
+                      binId: "02",
+                      location: "hallway",
+                      type: "Non-Biodegradable",
+                      fillLevel: 60,
+                      status: "Medium",
+                    ),
+                    BinRow(
+                      binId: "02",
+                      location: "hallway",
+                      type: "Non-Biodegradable",
+                      fillLevel: 60,
+                      status: "Medium",
                     ),
                   ],
                 ),

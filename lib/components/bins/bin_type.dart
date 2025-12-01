@@ -12,7 +12,7 @@ class BinTypeTag extends StatelessWidget {
       case "Recyclable":
         return Colors.blue.shade100;
       case "Non-Biodegradable":
-        return Colors.grey.shade100;
+        return Colors.redAccent;
       default:
         return Colors.grey.shade200;
     }
@@ -26,7 +26,7 @@ class BinTypeTag extends StatelessWidget {
         color: getTypeCOlor(),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(type, style: const TextStyle(fontSize: 12)),
+      child: Text(type, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 }

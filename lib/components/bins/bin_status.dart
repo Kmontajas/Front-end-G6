@@ -11,13 +11,13 @@ class StatusTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: color,
+          color: Colors.black,
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),
