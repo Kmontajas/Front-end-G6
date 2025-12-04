@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/bins/bins_row.dart';
@@ -13,53 +12,71 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Stream<List<dynamic>> _binsStream;
-  List<dynamic> _binsCache = [];
-  StreamSubscription<List<dynamic>>? _binsSub;
+  late Stream<List<Map<String, dynamic>>> _binsStream;
+  List<Map<String, dynamic>> _binsCache = [];
+  StreamSubscription<List<Map<String, dynamic>>>? _binsSub;
+
   bool _loading = true;
   String? _errorMessage;
+
+  final Set<String> _shownAlerts = {}; // track which bins have triggered FULL popup
 
   @override
   void initState() {
     super.initState();
-    _binsStream = ApiService.streamBins();
 
-    // keep a local cache that we can update immediately on delete/create
+    // ===== BINS STREAM =====
+    _binsStream = ApiService.streamBins().map((list) =>
+        list.map((e) => Map<String, dynamic>.from(e as Map)).toList());
     _binsSub = _binsStream.listen((bins) {
       setState(() {
         _binsCache = bins;
         _loading = false;
-        _errorMessage = null; // Clear error on successful fetch
+        _errorMessage = null;
       });
-    }, onError: (e) {
-      // keep using cache on errors
-      String errorMsg = 'Failed to load bins';
 
-      if (e is SocketException) {
-        errorMsg = 'Network error: Please check your internet connection';
-      } else if (e is TimeoutException) {
-        errorMsg = 'Request timeout: Server took too long to respond';
-      } else if (e.toString().contains('Connection refused')) {
-        errorMsg = 'Server connection failed';
-      } else if (e.toString().contains('Network is unreachable')) {
-        errorMsg = 'Network is unreachable';
+      // Check for FULL bins and show popup
+      for (var bin in bins) {
+        final binId = _extractId(bin);
+        final status = bin['status'] ?? 'OK';
+
+        if (status == "FULL" && !_shownAlerts.contains(binId)) {
+          _shownAlerts.add(binId);
+
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: true,
+              builder: (ctx) => AlertDialog(
+                title: const Text('🚨 Bin FULL Alert'),
+                content: Text('Bin $binId is FULL!'),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Dismiss'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
       }
 
+      // Remove bins from _shownAlerts if they are no longer FULL
+      for (var id in _shownAlerts.toList()) {
+        final bin = _binsCache.firstWhere(
+          (b) => _extractId(b) == id,
+          orElse: () => {},
+        );
+        if (bin.isEmpty || (bin['status'] ?? '') != "FULL") {
+          _shownAlerts.remove(id);
+        }
+      }
+    }, onError: (e) {
       setState(() {
         _loading = false;
-        _errorMessage = errorMsg;
+        _errorMessage = 'Failed to load bins: $e';
       });
-
-      // Show snackbar notification for GET/stream error
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
     });
   }
 
@@ -73,12 +90,136 @@ class _HomePageState extends State<HomePage> {
     FirebaseAuth.instance.signOut();
   }
 
-  // helper to extract id from backend bin object
   String _extractId(dynamic item) {
     if (item is Map<String, dynamic>) {
       return (item['binId'] ?? item['bin_id'] ?? item['id'] ?? item['_id'] ?? '').toString();
     }
     return item.toString();
+  }
+
+  Future<void> _deleteBin(String binId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm delete'),
+        content: Text('Delete bin "$binId"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      await ApiService.deleteBin(binId);
+      setState(() => _binsCache.removeWhere((b) => _extractId(b) == binId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bin deleted successfully'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Delete failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  // ===== CREATE BIN =====
+  Future<void> _createBin() async {
+    String binId = '';
+    String location = '';
+    String type = 'recyclable'; // default type
+
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Create New Bin'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Bin ID'),
+                onSaved: (value) => binId = value?.trim() ?? '',
+                validator: (value) => (value == null || value.trim().isEmpty) ? 'Enter bin ID' : null,
+              ),
+              TextFormField(
+                decoration: const InputDecoration(labelText: 'Location'),
+                onSaved: (value) => location = value?.trim() ?? '',
+                validator: (value) => (value == null || value.trim().isEmpty) ? 'Enter location' : null,
+              ),
+              DropdownButtonFormField<String>(
+                value: type,
+                items: const [
+                  DropdownMenuItem(value: 'recyclable', child: Text('Recyclable')),
+                  DropdownMenuItem(value: 'biodegradable', child: Text('Biodegradable')),
+                  DropdownMenuItem(value: 'non_biodegradable', child: Text('Non-Biodegradable')),
+                ],
+                onChanged: (value) => type = value ?? 'recyclable',
+                decoration: const InputDecoration(labelText: 'Type'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                formKey.currentState?.save();
+                Navigator.pop(ctx, true);
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      try {
+        // Create bin in Firebase
+        await ApiService.createBin({
+          'binId': binId,
+          'location': location,
+          'type': type,
+          'fill_level': 0,
+          'fill_level_percent': 0,
+          'status': 'OK',
+        });
+
+        // Optimistically update UI
+        setState(() {
+          _binsCache.add({
+            'binId': binId,
+            'location': location,
+            'type': type,
+            'fill_level': 0,
+            'fill_level_percent': 0,
+            'status': 'OK',
+          });
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Bin created successfully'), backgroundColor: Colors.green),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Create failed: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -96,14 +237,7 @@ class _HomePageState extends State<HomePage> {
         ),
         title: Row(
           children: [
-            const Text(
-              'Dashboard',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
-                color: Colors.white,
-              ),
-            ),
+            const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.white)),
             const SizedBox(width: 10),
             const Icon(Icons.dashboard, color: Colors.white),
           ],
@@ -111,16 +245,13 @@ class _HomePageState extends State<HomePage> {
         actions: [
           CircleAvatar(
             backgroundColor: Colors.white,
-            child: IconButton(
-              onPressed: signUserOut,
-              icon: const Icon(Icons.logout, color: Colors.red),
-            ),
+            child: IconButton(onPressed: signUserOut, icon: const Icon(Icons.logout, color: Colors.red)),
           ),
           const SizedBox(width: 10),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: _createBin,
         child: const Icon(Icons.add),
       ),
       backgroundColor: Colors.grey[100],
@@ -142,17 +273,8 @@ class _HomePageState extends State<HomePage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Welcome!',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            user?.email ?? 'User',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
+                          const Text('Welcome!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(user?.email ?? 'User', style: TextStyle(color: Colors.grey[600])),
                         ],
                       ),
                     ],
@@ -160,111 +282,24 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Bins list
-              const Text(
-                'Smart Bins',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              const Text('Smart Bins', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              Column(
-                children: [
-                  if (!isMobile)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: const [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            "Bin",
-                            style: headerStyle,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            "Location",
-                            style: headerStyle,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 4,
-                          child: Text(
-                            "Type",
-                            style: headerStyle,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 6,
-                          child: Text(
-                            "Fill Level",
-                            style: headerStyle,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            "Status",
-                            style: headerStyle,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
+              if (!isMobile)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: const [
+                    Expanded(flex: 2, child: Text("Bin", style: headerStyle, textAlign: TextAlign.center)),
+                    Expanded(flex: 3, child: Text("Location", style: headerStyle, textAlign: TextAlign.center)),
+                    Expanded(flex: 4, child: Text("Type", style: headerStyle, textAlign: TextAlign.center)),
+                    Expanded(flex: 6, child: Text("Fill Level", style: headerStyle, textAlign: TextAlign.center)),
+                    Expanded(flex: 3, child: Text("Status", style: headerStyle, textAlign: TextAlign.center)),
+                  ],
+                ),
               const Divider(),
-
-              // Real-time list rendered from local cache (_binsCache)
               Expanded(
                 child: Builder(builder: (context) {
                   if (_loading) return const Center(child: CircularProgressIndicator());
-
-                  // Show error message if stream failed
-                  if (_errorMessage != null) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16, color: Colors.red),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _errorMessage = null;
-                                _loading = true;
-                                _binsSub?.cancel();
-                                _binsStream = ApiService.streamBins();
-                                _binsSub = _binsStream.listen((bins) {
-                                  setState(() {
-                                    _binsCache = bins;
-                                    _loading = false;
-                                    _errorMessage = null;
-                                  });
-                                }, onError: (e) {
-                                  setState(() {
-                                    _loading = false;
-                                    _errorMessage = 'Failed to load bins';
-                                  });
-                                });
-                              });
-                            },
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
+                  if (_errorMessage != null) return Center(child: Text(_errorMessage!));
 
                   final bins = _binsCache;
                   if (bins.isEmpty) return const Center(child: Text('No bins available'));
@@ -272,21 +307,15 @@ class _HomePageState extends State<HomePage> {
                   return ListView.builder(
                     itemCount: bins.length,
                     itemBuilder: (context, index) {
-                      final item = bins[index] as Map<String, dynamic>;
-
-                      final binId = (item['binId'] ?? item['bin_id'] ?? item['id'] ?? item['_id'] ?? '').toString();
-                      final location = (item['location'] ?? 'Unknown').toString();
-                      final type = (item['type'] ?? 'Unknown').toString();
-
+                      final item = bins[index];
+                      final binId = _extractId(item);
+                      final location = item['location'] ?? 'Unknown';
+                      final type = item['type'] ?? 'Unknown';
                       int fillLevel = 0;
-                      final rawFill = item['fill_level'] ?? item['fillLevel'] ?? item['distance_cm'];
-                      if (rawFill is num) {
-                        fillLevel = rawFill.round();
-                      } else if (rawFill is String) {
-                        fillLevel = int.tryParse(rawFill) ?? 0;
-                      }
-
-                      final status = (item['status'] ?? 'Unknown').toString();
+                      final rawFill = item['fill_level'] ?? item['fill_level_percent'] ?? 0;
+                      if (rawFill is num) fillLevel = rawFill.round();
+                      else if (rawFill is String) fillLevel = int.tryParse(rawFill) ?? 0;
+                      final status = item['status'] ?? 'Unknown';
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -302,51 +331,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: 'Delete bin',
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Confirm delete'),
-                                    content: Text('Delete bin "\$binId"?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                      ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
-                                    ],
-                                  ),
-                                );
-                                if (confirm != true) return;
-                                try {
-                                  await ApiService.deleteBin(binId);
-
-                                  if (mounted) {
-                                    setState(() {
-                                      _binsCache.removeWhere((b) => _extractId(b) == binId);
-                                    });
-                                  }
-
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Bin deleted successfully'),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Delete failed: \\${e.toString()}'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                            ),
+                            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteBin(binId)),
                           ],
                         ),
                       );
@@ -362,8 +347,4 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-const headerStyle = TextStyle(
-  fontSize: 14,
-  fontWeight: FontWeight.bold,
-  color: Colors.black87,
-);
+const headerStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87);

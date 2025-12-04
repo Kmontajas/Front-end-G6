@@ -12,7 +12,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  //text editing controllers
+  // Text controllers
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
@@ -22,14 +22,12 @@ class _RegisterPageState extends State<RegisterPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Error'),
+          title: const Text('Error'),
           content: Text(message),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('OK'),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
             ),
           ],
         );
@@ -37,36 +35,35 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  //sign user up method
-  void signUserUp() async {
-    //loading circle
+  Future<void> signUserUp() async {
+    // Check if passwords match first
+    if (passwordController.text != confirmPasswordController.text) {
+      showErrorMessage("Passwords do not match");
+      return;
+    }
+
+    // Show loading
     showDialog(
       context: context,
-      builder: (context) {
-        return const Center(child: CircularProgressIndicator());
-      },
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
-    try {
-      if (passwordController.text != confirmPasswordController.text) {
-        Navigator.pop(context);
-        showErrorMessage("Passwords do not match");
-        return;
-      }
 
-      // create account
+    try {
+      // Create user
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text,
       );
 
-      // sign out so the app returns to the login state
+      // Sign out to return to login state
       await FirebaseAuth.instance.signOut();
 
-      // dismiss loading
-      Navigator.pop(context);
+      // Dismiss loading
+      Navigator.of(context, rootNavigator: true).pop();
 
-      // inform user and switch back to login view
-      showDialog(
+      // Show success dialog and switch to login
+      await showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
@@ -75,8 +72,8 @@ class _RegisterPageState extends State<RegisterPage> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // close dialog
-                  widget.onTap?.call();   // switch to login view
+                  Navigator.pop(context);
+                  widget.onTap?.call();
                 },
                 child: const Text('OK'),
               ),
@@ -85,12 +82,15 @@ class _RegisterPageState extends State<RegisterPage> {
         },
       );
     } on FirebaseAuthException catch (e) {
-      Navigator.pop(context);
-
-      //show error message
+      // Dismiss loading if error
+      Navigator.of(context, rootNavigator: true).pop();
       showErrorMessage(e.message ?? 'An unknown error occurred');
+    } catch (e) {
+      Navigator.of(context, rootNavigator: true).pop();
+      showErrorMessage('Something went wrong. Please try again.');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,11 +112,10 @@ class _RegisterPageState extends State<RegisterPage> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              double Width = constraints.maxWidth;
-              double formWidth = 
-              Width > 1000 ? 400 :
-              Width > 600 ? 500 : 
-              Width * 0.9;
+              double width = constraints.maxWidth;
+              double formWidth =
+                  width > 1000 ? 400 : width > 600 ? 500 : width * 0.9;
+
               return Center(
                 child: SingleChildScrollView(
                   child: Container(
@@ -124,52 +123,48 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        
-                        //logo
+                        // Logo
                         Image.asset(
                           'assets/images/ucclogowhitenonum.png',
                           width: MediaQuery.of(context).size.width * 0.6,
                           height: MediaQuery.of(context).size.height * 0.35,
                           fit: BoxFit.contain,
                         ),
-                        
+
                         const SizedBox(height: 25),
-                        
-                        //email textfield
+
+                        // Email
                         MyTextField(
                           controller: emailController,
-                          hintText: 'email',
+                          hintText: 'Email',
                           obscureText: false,
                           icon: Icons.email,
                         ),
-                        
                         const SizedBox(height: 10),
-                        
-                        //password textfield
+
+                        // Password
                         MyTextField(
                           controller: passwordController,
                           hintText: 'Password',
                           obscureText: true,
                           icon: Icons.lock,
                         ),
-                        
                         const SizedBox(height: 10),
-                        
-                        //confirm password textfield
+
+                        // Confirm Password
                         MyTextField(
                           controller: confirmPasswordController,
                           hintText: 'Confirm Password',
                           obscureText: true,
                           icon: Icons.lock,
                         ),
-                        
                         const SizedBox(height: 25),
-                        //sign in button
-                        MyButton(text: "Sign up", onTap: signUserUp),
-                        
+
+                        // Sign Up Button
+                        MyButton(text: "Sign Up", onTap: signUserUp),
                         const SizedBox(height: 25),
-                        
-                        //not a member? register now
+
+                        // Login link
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -195,7 +190,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
               );
-            }
+            },
           ),
         ),
       ),
